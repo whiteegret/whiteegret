@@ -1,74 +1,60 @@
 /*
  * WhiteEgret Linux Security Module
  *
- * Copyright (C) 2017 Toshiba Corporation
+ * Copyright (C) 2017-2018 Toshiba Corporation
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, version 2.
  */
 
+#define pr_fmt(fmt) "WhiteEgret: " fmt
+
+#include <linux/kernel.h>
 #include <linux/semaphore.h>
 #include <linux/binfmts.h>
 #include <linux/dcache.h>
 #include <linux/fs.h>
 #include <linux/mman.h>
-#include "we_common.h"
 #include "we.h"
 #include "request.h"
-#include "print_msg.h"
-
-#ifdef CONFIG_SECURITY_WHITEEGRET_DRIVER
 
 #include <linux/sched.h>
 #include <linux/module.h>
 #include <linux/slab.h>
-#include "dd_com.h"
+#include "we_fs.h"
 
-#else
-
-#include "gennl.h"
-#include "returntoexec.h"
-
-struct we_req_data reqdata;  /* data of executable */
-struct semaphore we_result_lock;
-int result = -1;                 /* result of matching to white list */
-
-#endif
 
 static int send_receive_we_obj_info(
 		struct we_obj_info *we_obj_info, int *checkresult);
 
 /**
- * we_specific_init - Initialize netlink and semaphore.
+ * we_specific_init - Initialize fs.
  *
  * Returns 0.
  */
 int we_specific_init(void)
 {
-#ifndef CONFIG_SECURITY_WHITEEGRET_DRIVER
 	int rc = 0;
 
-	rc = we_netlink_register();
+	rc = we_fs_init();
 	if (rc < 0) {
-		PRINT_ERROR(rc);
+		pr_err("error %d at %d in %s\n", rc, __LINE__, __FILE__);
 		return rc;
 	}
 
-	sema_init(&we_result_lock, 1);
-#endif
 	we_req_q_head_init();
 
 	return 0;
 }
 
 /**
- * we_specific_exit - Close netlink.
+ * we_specific_exit - Nothing to do in the implementation.
  *
  * Returns 0.
  */
 int we_specific_exit(void)
 {
-#ifndef CONFIG_SECURITY_WHITEEGRET_DRIVER
-	we_netlink_unregister();
-#endif
-
 	return 0;
 }
 
@@ -81,6 +67,7 @@ int we_specific_exit(void)
  */
 int we_check_main(struct file *file)
 {
+	struct inode *inode;
 	struct we_obj_info we_obj_info;
 	char *pathnamebuf;
 	char *new_pathnamebuf;
@@ -98,7 +85,7 @@ int we_check_main(struct file *file)
 	pathnamebuf = kmalloc(pathsize, GFP_KERNEL);
 	if (unlikely(!pathnamebuf)) {
 		rc = -ENOMEM;
-		PRINT_ERROR(rc);
+		pr_err("error %d at %d in %s\n", rc, __LINE__, __FILE__);
 		goto failure;
 	}
 	while (pathsize <= MAXPATHSIZE) {
@@ -112,14 +99,15 @@ int we_check_main(struct file *file)
 				GFP_KERNEL);
 		if (unlikely(!new_pathnamebuf)) {
 			rc = -ENOMEM;
-			PRINT_ERROR(rc);
+			pr_err("error %d at %d in %s\n", rc,
+					__LINE__, __FILE__);
 			goto failure;
 		}
 		pathnamebuf = new_pathnamebuf;
 	}
 	if (unlikely(pathsize >= MAXPATHSIZE)) {
 		rc = -ENOMEM;
-		PRINT_ERROR(rc);
+		pr_err("error %d at %d in %s\n", rc, __LINE__, __FILE__);
 		goto failure;
 	}
 
@@ -132,32 +120,28 @@ int we_check_main(struct file *file)
 	}
 	strncpy(we_obj_info.shortname, shortnamebuf, SHORTNAMELENGTH);
 	we_obj_info.path = pathname;
+	inode = file_inode(file);
+	we_obj_info.ino = inode->i_ino;
+	we_obj_info.dmajor = MAJOR(inode->i_sb->s_dev);
+	we_obj_info.dminor = MINOR(inode->i_sb->s_dev);
 	we_obj_info.pid = current->pid;
-#ifdef CONFIG_SECURITY_WHITEEGRET_DRIVER
 	we_obj_info.pathsize = strlen(pathname);
 	we_obj_info.ppid = current->tgid;
-#endif
 
-#ifndef CONFIG_SECURITY_WHITEEGRET_DRIVER
-	rc = down_timeout(&we_result_lock, WERESULTTIMEOUT);
-	if (rc != 0)
-		goto failure;
-	inc_seq();
-#endif
 	rc = send_receive_we_obj_info(&we_obj_info, &checkresult);
 	if (rc < 0)
 		goto failure;
 
 	rc = checkresult;
 
-	if (rc == -EPERM)
-		PRINT_WARNING("block %s.\n", pathname);
+	if (rc == -EACCES)
+		pr_warn("block %s, ino=%ld, devno=0x%x.\n",
+			pathname, we_obj_info.ino,
+			MKDEV(we_obj_info.dmajor, we_obj_info.dminor));
 	else
-		PRINT_INFO("permit %s.\n", pathname);
-
-#ifndef CONFIG_SECURITY_WHITEEGRET_DRIVER
-	up(&we_result_lock);
-#endif
+		pr_info("permit %s, ino=%ld, devno=0x%x.\n",
+			pathname, we_obj_info.ino,
+			MKDEV(we_obj_info.dmajor, we_obj_info.dminor));
 
 failure:
 	if (pathnamebuf != NULL) {
@@ -165,8 +149,8 @@ failure:
 		pathnamebuf = NULL;
 	}
 
-	if ((rc != 0) && (rc != -EPERM))
-		PRINT_WARNING("Checking white list does not work.\n");
+	if ((rc != 0) && (rc != -EACCES))
+		pr_warn("Checking white list does not work.\n");
 
 	return rc;
 }
@@ -191,12 +175,11 @@ static int send_receive_we_obj_info(
 	if ((we_req_q_search(&(req.data))) == NULL) {
 		rc = we_req_q_push(&req);
 		if (rc < 0) {
-			PRINT_ERROR(rc);
+			pr_err("error %d at %d in %s\n", rc,
+					__LINE__, __FILE__);
 			goto failure;
 		}
 	}
-
-#ifdef CONFIG_SECURITY_WHITEEGRET_DRIVER
 
 	for (i = 0; i < MAXCOMRETRY; i++) {
 		rc = send_we_obj_info(&req);
@@ -204,7 +187,7 @@ static int send_receive_we_obj_info(
 		if (likely(req.finish_flag == START_EXEC)) {
 			break;
 		} else if (unlikely(rc == -ERESTARTSYS)) {
-			rc = -EINVAL;
+			pr_info("Signal detected (%d)\n", rc);
 			break;
 		}
 	}
@@ -213,54 +196,12 @@ static int send_receive_we_obj_info(
 
 	if (unlikely(i >= MAXCOMRETRY) && req.finish_flag != START_EXEC) {
 		rc = -EINVAL;
-		PRINT_ERROR(rc);
+		pr_err("error %d at %d in %s\n", rc, __LINE__, __FILE__);
 	}
 
 	*checkresult = req.permit;
 
-	return rc;
-
-#else
-
-	for (i = 0; i < MAXCOMRETRY; i++) {
-		rc = send_we_obj_info(we_obj_info);
-		if (rc < 0)
-			continue;
-
-		rc = wait_for_completion_interruptible_timeout(&(req.evt),
-				WEGENNLTIMEOUT);
-		if (rc <= 0) {
-			if (unlikely(rc == -ERESTARTSYS)) {
-				we_req_q_del(&(req.data));
-				rc = -EINVAL;
-				PRINT_ERROR(rc);
-				goto failure;
-			}
-			if (rc == 0)
-				rc = -ETIMEDOUT;
-			continue;
-		} else {
-			break;
-		}
-	}
-
-	if (unlikely(i >= MAXCOMRETRY)) {
-		we_req_q_del(&(req.data));
-		rc = -EINVAL;
-		PRINT_ERROR(rc);
-		goto failure;
-	}
-
-	*checkresult = result;
-
-	return 0;
-
-#endif  /* CONFIG_SECURITY_WHITEEGRET_DRIVER */
-
 failure:
-#ifndef CONFIG_SECURITY_WHITEEGRET_DRIVER
-	up(&we_result_lock);
-#endif
 	return rc;
 }
 
@@ -273,11 +214,7 @@ failure:
  */
 int we_security_bprm_check_main(struct linux_binprm *bprm)
 {
-#ifdef CONFIG_SECURITY_WHITEEGRET_DRIVER
 	if (unlikely(!from_task))
-#else
-	if (unlikely(from_pid == -1))
-#endif
 		return 0;
 
 	return we_check_main(bprm->file);
@@ -293,12 +230,9 @@ int we_security_bprm_check_main(struct linux_binprm *bprm)
  * Returns 0 if succeeded, < 0 otherwise.
  */
 int we_security_mmap_check_main(struct file *file,
-		unsigned long reqprot, unsigned long flags) {
-#ifdef CONFIG_SECURITY_WHITEEGRET_DRIVER
+		unsigned long reqprot, unsigned long flags)
+{
 	if (unlikely(!from_task))
-#else
-	if (unlikely(from_pid == -1))
-#endif
 		return 0;
 
 	if (!(reqprot & PROT_EXEC))
@@ -315,26 +249,3 @@ int we_security_mmap_check_main(struct file *file,
 
 	return we_check_main(file);
 }
-
-#ifndef CONFIG_SECURITY_WHITEEGRET_DRIVER
-
-/**
- * returntoexec - Record matching data and result.
- *
- * @result_: Result whether targeted object is included in the white list.
- * @reqdata_: Pointer to struct we_req_data.
- *
- * Returns 0.
- */
-int returntoexec(int result_, struct we_req_data *reqdata_)
-{
-	if (!result_)
-		result = -EPERM;
-	else
-		result = 0;
-	memcpy(&reqdata, reqdata_, sizeof(struct we_req_data));
-
-	return 0;
-}
-
-#endif

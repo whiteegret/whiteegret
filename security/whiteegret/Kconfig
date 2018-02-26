@@ -5,17 +5,7 @@ config SECURITY_WHITEEGRET
         help
 	  This enables the WhiteEgret security module.
 	  WhiteEgret provides a whitelisting execution control capability,
-	  which helps to stop the execution of unauthorized software
+	  which helps stop the execution of unauthorized software
 	  such as malware.
 	  You will also need a user application and an execution whitelist.
           If you are unsure how to answer this question, answer N.
-
-config SECURITY_WHITEEGRET_DRIVER
-	bool "Use device driver in communication with user space"
-	depends on SECURITY_WHITEEGRET
-	default n
-	help
-	  This option selects whether you use a device driver
-	  for communication between kernel space and user space.
-	  If you do not set this option, netlink is selected for
-	  communication between two spaces.

@@ -60,30 +60,17 @@ the memory mapping by a shared object. Thus WhiteEgret ignores
 the `mmap_file` hook caused by non-executable and by executable
 which calls `execve` system call.
 
-To ask the permission to a WEUA, WhiteEgret sends the absolute path
-of the executable component to the WEUA.
-Then the WEUA is expected to work as follows.
-The WEUA sees if the absolute path is contained in the whitelist.
+To ask the permission to a WEUA, WhiteEgret sends the absolute path,
+the inode number and the device number of the executable component
+to the WEUA. Then the WEUA is expected to work as follows.
+The WEUA sees if the tuple of the absolute path and/or the inode
+number and/or the device number is contained in the whitelist.
 If it exists, the WEUA compares a hash value of the executable
-component indicated by the absolute path with that in the
-whitelist to see whether the executable component is changed
-or not after the whitelist is made. The WEUA returns "permit"
-if both tests are passed, otherwise returns "not permit".
-
-WhiteEgret has two interface to communicate between kernel
-space and user space: netlink and device driver. Although we
-plan on using netlink, kernel Oops rarely happens when we use
-netlink. Because we have not determined the cause yet,
-we provide another communication method using device driver.
-
-The process of a WEUA is registered to WhiteEgret when it starts.
-The CAP_NET_ADMIN capability is required for a process to
-register to WhiteEgret. Once some process is registered,
-after that, WhiteEgret rejects registration from the other
-process by PID.
-At the moment, authentication of WEUA by WhiteEgret at
-registration has not implemented yet. Current authentication
-function returns always "authenticated".
+component indicated by the absolute path (and/or the inode number
+and/or device number) with that in the whitelist to see
+whether the executable component is changed or not after
+the whitelist is made. The WEUA returns "permit" if both tests
+are passed, otherwise returns "not permit".
 
 ## Prerequisites
 
@@ -91,15 +78,10 @@ function returns always "authenticated".
 version 4.11.0 or later.
 - Prepare your own WEUA.
 - Prepare your own whitelist.
-- Install netlink library libnl.
 
 If you want only to try to run WhiteEgret, use the sample user
 application included in this project. In this case, you do not
 need to prepare your own WEUA and whitelist.
-
-If you want to use device driver for communication between
-kernel space and user space, then you do not need to install
-netlink library.
 
 ## Build
 
@@ -122,25 +104,6 @@ $ sudo make modules_install
 $ sudo make install
 ```
 8. Boot Linux to the new kernel.
-
-If you want to use device driver for communication between
-kernel space and user space, then
-- copy `WE_DIR/drivers/security/whiteegret` to
-`drivers/security/whiteegret` in step 4,
-- edit `drivers/Kconfig`, `drivers/Makefile`, `dirivers/security/Kconfig`
-and `drivers/security/Makefile` according to `WE_DIR/drivers/Kconfig`,
-`WE_DIR/drivers/Makefile`, `WE_DIR/dirivers/security/Kconfig` and
-`WE_DIR/drivers/security/Makefile`, respectively in step 5,
-- enable option
-```
-CONFIG_SECURITY_WHITEEGRET_DRIVER=y
-```
-in step 6, and
-- issue the following two commands after step 8.
-```
-$ cd /lib/modules/$(uname -r)/build/drivers/security/whiteegret
-$ sudo insmod we_driver.ko.
-```
 
 ### Build sample user application
 

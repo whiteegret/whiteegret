@@ -7,7 +7,6 @@
 # are printed in comment format.
 
 
-# source security/loadpin/Kconfig
 # source security/yama/Kconfig
 source security/whiteegret/Kconfig
 

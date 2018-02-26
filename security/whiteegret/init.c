@@ -1,25 +1,31 @@
 /*
  * WhiteEgret Linux Security Module
  *
- * Copyright (C) 2017 Toshiba Corporation
+ * Copyright (C) 2017-2018 Toshiba Corporation
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, version 2.
  */
 
+#define pr_fmt(fmt) "WhiteEgret: " fmt
+
+#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/security.h>
 #include <linux/fs.h>
-#include <linux/lsm_hooks.h>
 #include "we.h"
-#include "print_msg.h"
+
+#include <linux/lsm_hooks.h>
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("WhiteEgret Linux Security Module");
-MODULE_VERSION("1.0.0");
 
 static int we_security_bprm_check(struct linux_binprm *bprm)
 {
-	if (we_security_bprm_check_main(bprm) == -EPERM)
-		return -EPERM;
+	if (we_security_bprm_check_main(bprm) == -EACCES)
+		return -EACCES;
 
 	return 0;
 }
@@ -27,8 +33,8 @@ static int we_security_bprm_check(struct linux_binprm *bprm)
 static int we_security_mmap_check(struct file *file, unsigned long reqprot,
 		unsigned long prot, unsigned long flags)
 {
-	if (we_security_mmap_check_main(file, reqprot, flags) == -EPERM)
-		return -EPERM;
+	if (we_security_mmap_check_main(file, reqprot, flags) == -EACCES)
+		return -EACCES;
 
 	return 0;
 }
@@ -49,11 +55,11 @@ static int __init we_init(void)
 
 	rc = we_specific_init();
 	if (rc) {
-		PRINT_ERROR(rc);
+		pr_err("error %d at %d in %s\n", rc, __LINE__, __FILE__);
 		return rc;
 	}
 
-	PRINT_WARNING("WhiteEgret (LSM) initialized.\n");
+	pr_warn("WhiteEgret (LSM) initialized.\n");
 
 	return 0;
 }
@@ -62,7 +68,7 @@ static void __exit we_exit(void)
 {
 	we_specific_exit();
 
-	PRINT_WARNING("WhiteEgret (LSM) exited.\n");
+	pr_warn("WhiteEgret (LSM) exited.\n");
 }
 
 module_init(we_init);
