@@ -1,0 +1,15 @@
+# DO NOT USE THIS FILE AS IT IS.
+
+# Insert some lines below to appropriate location of
+# $(srctree)/samples/Makefile.
+
+# Lines just before and after the line to be inserted
+# are printed in comment format.
+
+
+# Makefile for Linux samples code
+
+obj-$(CONFIG_SAMPLES)	+= kobject/ kprobes/ trace_events/ livepatch/ \
+			   hw_breakpoint/ kfifo/ kdb/ hidraw/ rpmsg/ seccomp/ \
+			   configfs/ connector/ v4l/ trace_printk/ blackfin/ \
+			   vfio-mdev/ statx/ whiteegret/

@@ -1,0 +1,22 @@
+# DO NOT USE THIS FILE AS IT IS.
+
+# Insert some lines below to appropriate location of
+# $(srctree)/samples/Kconfig.
+
+# Lines just before and after the line to be inserted
+# are printed in comment format.
+
+
+#config SAMPLE_STATX
+#	bool "Build example extended-stat using code"
+#	depends on BROKEN
+#	help
+#	  Build example userspace program to use the new extended-stat syscall.
+
+config SAMPLE_WHITEEGRET
+	bool "Build WhiteEgret sample user application"
+	depends on SECURITY_WHITEEGRET
+	help
+	  Build sample userspace application for WhiteEgret LSM module.
+
+#endif # SAMPLES

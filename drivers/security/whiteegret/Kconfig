@@ -1,0 +1,10 @@
+config WHITEEGRET_DRIVER
+	depends on SECURITY_WHITEEGRET_DRIVER
+	tristate "Driver for WhiteEgret LSM module"
+	default m
+	help
+	  This driver adds communication functionality between user space
+	  and kernel space of the WhiteEgret LSM module.
+	  Building with this option, we_driver.ko is created in this
+	  directory. Then insmod we_driver.ko command create a special
+	  file /dev/wecom.
