@@ -95,7 +95,6 @@ according to `WE_DIR/security/Kconfig` and `WE_DIR/security/Makefile`, respectiv
 6. Configure with
 ```
 CONFIG_SECURITY_WHITEEGRET=y
-CONFIG_DEFAULT_SECURITY_WHITEEGRET=y
 ```
 7. Make and install by running:
 ```

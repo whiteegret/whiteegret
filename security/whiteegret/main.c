@@ -23,7 +23,7 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include "we_fs.h"
-
+#include <linux/sched/signal.h>
 
 static int send_receive_we_obj_info(
 		struct we_obj_info *we_obj_info, int *checkresult);
@@ -169,34 +169,38 @@ static int send_receive_we_obj_info(
 	int i;
 	int rc;
 	struct we_req_q req;
+	int is_signal;
 
 	we_req_q_init(&req, we_obj_info);
 
-	if ((we_req_q_search(&(req.data))) == NULL) {
-		rc = we_req_q_push(&req);
-		if (rc < 0) {
-			pr_err("error %d at %d in %s\n", rc,
-					__LINE__, __FILE__);
-			goto failure;
-		}
+	rc = we_req_q_push(&req);
+	if (rc < 0) {
+		pr_err("error %d at %d in %s\n", rc,
+				__LINE__, __FILE__);
+		goto failure;
 	}
 
+	is_signal = 0;
 	for (i = 0; i < MAXCOMRETRY; i++) {
 		rc = send_we_obj_info(&req);
 
-		if (likely(req.finish_flag == START_EXEC)) {
-			break;
-		} else if (unlikely(rc == -ERESTARTSYS)) {
-			pr_info("Signal detected (%d)\n", rc);
-			break;
+		if (signal_pending(current)) {
+			is_signal = 1;
+			clear_tsk_thread_flag(current, TIF_SIGPENDING);
 		}
+
+		if (likely(req.finish_flag == START_EXEC))
+			break;
 	}
 
 	we_req_q_pop(&req);
 
+	if (is_signal)
+		set_tsk_thread_flag(current, TIF_SIGPENDING);
+
 	if (unlikely(i >= MAXCOMRETRY) && req.finish_flag != START_EXEC) {
-		rc = -EINVAL;
 		pr_err("error %d at %d in %s\n", rc, __LINE__, __FILE__);
+		rc = -EINVAL;
 	}
 
 	*checkresult = req.permit;

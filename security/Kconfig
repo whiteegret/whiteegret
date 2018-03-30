@@ -9,23 +9,3 @@
 
 # source security/yama/Kconfig
 source security/whiteegret/Kconfig
-
-
-#	default DEFAULT_SECURITY_APPARMOR if SECURITY_APPARMOR
-	default DEFAULT_SECURITY_WHITEEGRET if SECURITY_WHITEEGRET
-#	default DEFAULT_SECURITY_DAC
-
-
-#	config DEFAULT_SECURITY_APPARMOR
-#		bool "AppArmor" if SECURITY_APPARMOR=y
-
-	config DEFAULT_SECURITY_WHITEEGRET
-		bool "WhiteEgret" if SECURITY_WHITEEGRET=y
-
-#	config DEFAULT_SECURITY_DAC
-#		bool "Unix Discretionary Access Controls"
-
-
-#	default "apparmor" if DEFAULT_SECURITY_APPARMOR
-	default "whiteegret" if DEFAULT_SECURITY_WHITEEGRET
-#	default "" if DEFAULT_SECURITY_DAC

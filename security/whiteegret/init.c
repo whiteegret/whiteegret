@@ -48,9 +48,6 @@ static int __init we_init(void)
 {
 	int rc;
 
-	if (!security_module_enable("whiteegret"))
-		return 0;
-
 	security_add_hooks(we_hooks, ARRAY_SIZE(we_hooks), "whiteegret");
 
 	rc = we_specific_init();

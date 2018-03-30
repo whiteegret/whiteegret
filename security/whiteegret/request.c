@@ -21,7 +21,7 @@ static int match_we_req_data(struct we_req_data *data1,
 		struct we_req_data *data2);
 
 /**
- * we_req_q_init - Initialize the global variable we_q_head.
+ * we_req_q_head_init - Initialize the global variable we_q_head.
  *
  * Returns 0.
  */

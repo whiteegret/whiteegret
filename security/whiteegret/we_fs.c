@@ -76,9 +76,11 @@ static int set_we_req_info(struct we_req_user *user,
 	WE_COPY_TO_USER(user->pathsize, info->pathsize, ret);
 	if (ret != 0)
 		return -EFAULT;
-	ret = copy_to_user(user->path, info->path, info->pathsize + 1);
-	if (ret != 0)
-		return -EFAULT;
+	if (info->pathsize) {
+		ret = copy_to_user(user->path, info->path, info->pathsize + 1);
+		if (ret != 0)
+			return -EFAULT;
+	}
 
 	return 0;
 }
@@ -136,11 +138,13 @@ static ssize_t send_ack(struct we_req_q_head *root, struct we_ack *ack)
 	write_lock(&root->lock);
 	list_for_each(p, &root->head) {
 		temp = list_entry(p, struct we_req_q, queue);
-		if (temp->data.we_obj_info->pid == ack->pid) {
+		if ((temp->data.we_obj_info->pid == ack->pid)
+				&& (temp->finish_flag != START_EXEC)) {
 			req = temp;
 			req->permit = ack->permit;
-			wake_up_interruptible_sync(&req->waitq);
 			req->finish_flag = START_EXEC;
+			wake_up_interruptible_sync(&req->waitq);
+			break;
 		}
 	}
 	write_unlock(&root->lock);
@@ -170,7 +174,7 @@ static ssize_t we_driver_read(struct file *file, char *buf,
 			break;
 	}
 
-	return sizeof(*user) + user->pathsize + 1;
+	return 1;
 }
 
 static ssize_t we_driver_write(struct file *file, const char *buf,
