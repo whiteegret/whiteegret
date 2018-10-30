@@ -112,7 +112,7 @@ according to `WE_DIR/security/Kconfig` and `WE_DIR/security/Makefile`, respectiv
 ```
 CONFIG_SECURITY_WHITEEGRET=y
 ```
-6.1 Option enable to controll script
+if option enable to controll script.
 ```
 SECURITY_WHITEEGRET_INTERPRETER=y
 ```
@@ -150,14 +150,14 @@ The location of the sample user application is
 
 ### Sample user application
 
-  sample-we-user <exe> <interpreter exe> <script>
+  sample-we-user `exe` `interpreter exe` `script`
 
 This sample user application always returns "not permit"
-for the executable specified by the argument <exe>,
+for the executable specified by the argument `exe`,
 otherwise always returns "permit". Set the absolute path
-of an executable to be blocked for <exe>.
+of an executable to be blocked for `exe`.
 
-If the process of <interpreter exe> opening <script>, WhiteEgret
+If the process of `interpreter exe` opening `script`, WhiteEgret
 denies the execution request of the script. If the process opens
 the other file, WhiteEgret allows the execution request.
 
