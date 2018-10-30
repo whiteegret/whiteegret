@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * WhiteEgret Linux Security Module
  *
@@ -20,7 +21,13 @@
 #define NOTPERMITEXENAMELENGTH 1024
 
 extern char not_permit_exe[NOTPERMITEXENAMELENGTH];
+extern char monitor_interpreter[NOTPERMITEXENAMELENGTH];
+extern char not_permit_script[NOTPERMITEXENAMELENGTH];
 
-int check_whitelist(int *result, struct we_req_user *user);
+void init_terp_proc(void);
+int check_whitelist_exec(int *result, struct we_req_user *user);
+int check_whitelist_terp(int *result, struct we_req_user *user);
+int check_fork_terp(int *result, struct we_req_user *user);
+int check_exit_terp(int *result, struct we_req_user *user);
 
 #endif

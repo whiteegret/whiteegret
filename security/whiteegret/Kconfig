@@ -1,11 +1,82 @@
 config SECURITY_WHITEEGRET
-        bool "WhiteEgret support"
-        depends on SECURITY
-        default n
-        help
+	bool "WhiteEgret support"
+	depends on SECURITY
+	select SECURITYFS
+	default n
+	help
 	  This enables the WhiteEgret security module.
 	  WhiteEgret provides a whitelisting execution control capability,
 	  which helps stop the execution of unauthorized software
 	  such as malware.
 	  You will also need a user application and an execution whitelist.
-          If you are unsure how to answer this question, answer N.
+	  If you are unsure how to answer this question, answer N.
+
+config SECURITY_WHITEEGRET_INTERPRETER
+	bool "WhiteEgret hook file read and create/exit task for interpreter"
+	depends on SECURITY_WHITEEGRET
+	default n
+	help
+	  This add LSM fook points for controlling interpreter.
+	  Target hook points are file read and create/exit task functions.
+	  You selecte details hook points for enabling config depend on
+	  SECURITY_WHITEEGRET_INTERPRETER.
+
+config SECURITY_WHITEEGRET_HOOK_FILE_READ
+	bool "WhiteEgret hook file read"
+	depends on SECURITY_WHITEEGRET_INTERPRETER
+	default n
+	help
+	  This enables hooking file read. The Kernel notify hooking infomation
+	  to WhiteEgret's user application. This applocation can receive
+	  hooking infomation and contorolling execution of hook function.
+
+config SECURITY_WHITEEGRET_HOOK_READ_OPEN
+	bool "WhiteEgret hook open for file read"
+	depends on SECURITY_WHITEEGRET_INTERPRETER
+	default y
+	help
+	  This enables hooking file open LSM for reading. The Kernel notify
+	  hooking infomation to WhiteEgret user application. This applocation
+	  can receive hooking infomation and contorolling execution of
+	  hook function.
+
+config SECURITY_WHITEEGRET_CHECK_LIVING_TASK
+	bool "WhiteEgret hook creating and exiting task"
+	depends on SECURITY_WHITEEGRET_INTERPRETER
+	default y
+	help
+	  This enables hooking create/exit task LSM. The Kernel notify
+	  hooking infomation to WhiteEgret user application. This applocation
+	  can receive hooking infomation and contorolling execution of
+	  hook function.
+
+config SECURITY_WHITEEGRET_HOOK_WRITE
+	bool "WhiteEgret hook write"
+	depends on SECURITY_WHITEEGRET
+	select SECURITY_PATH
+	default n
+	help
+	  This add LSM fook points for monitoring to write to executable file.
+	  You selecte hook points to write file for enabling config depend on
+	  SECURITY_WHITEEGRET_HOOK_WRITE.
+	  rename function is hooked by enable SECURITY_WHITEEGRET_HOOK_WRITE.
+
+config SECURITY_WHITEEGRET_HOOK_FILE_WRITE
+	bool "WhiteEgret hook file write"
+	depends on SECURITY_WHITEEGRET_HOOK_WRITE
+	default n
+	help
+	  This enables hooking file open LSM for writing. The Kernel notify
+	  hooking infomation to WhiteEgret user application. This applocation
+	  can receive hooking infomation and contorolling execution of
+	  hook function.
+
+config SECURITY_WHITEEGRET_HOOK_WRITE_OPEN
+	bool "WhiteEgret hook open for write"
+	depends on SECURITY_WHITEEGRET_HOOK_WRITE
+	default y
+	help
+	  This enables hooking file write. The Kernel notify hooking
+	  infomation to WhiteEgret user application. This applocation
+	  can receive hooking infomation and contorolling execution of
+	  hook function.

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * WhiteEgret Linux Security Module
  *
@@ -11,7 +12,7 @@
 #ifndef _WE_H
 #define _WE_H
 
-#include <linux/binfmts.h>
+#include "we_fs_common.h"
 
 /*
  * Initial size in byte of memory allocation to store the path
@@ -46,19 +47,24 @@
  * in the whitelist or not
  */
 struct we_obj_info {
-	unsigned long ino;                /* inode number */
-	unsigned int dmajor;              /* major version of device number */
-	unsigned int dminor;              /* minor version of device number */
-	char shortname[SHORTNAMELENGTH];  /* short name for the object */
-	int pathsize;
-	char *path;                       /* full path to the object */
-	pid_t pid;
-	pid_t ppid;
+	char *fpath_kernel;
+	struct we_req_user req_user;
 };
+
+struct path;
+struct linux_binprm;
+struct file;
+struct task_struct;
 
 int we_security_bprm_check_main(struct linux_binprm *bprm);
 int we_security_mmap_check_main(struct file *file,
-		unsigned long reqprot, unsigned long flags);
+				unsigned long reqprot, unsigned long flags);
+int we_security_open_check_main(struct file *file);
+int we_security_rename_check_main(struct path *new_path);
+int we_security_access_check_main(struct file *file, int mask);
+int we_security_task_alloc_check_main(struct task_struct *task,
+				      unsigned long clone_flags);
+void we_security_task_free_check_main(struct task_struct *task);
 
 int we_specific_init(void);
 int we_specific_exit(void);

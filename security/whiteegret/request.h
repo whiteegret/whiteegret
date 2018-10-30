@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * WhiteEgret Linux Security Module
  *
@@ -11,10 +12,10 @@
 #ifndef _REQUEST_H
 #define _REQUEST_H
 
-#include <linux/sched.h>
 #include <linux/wait.h>
+#include <linux/list.h>
 
-#include "we.h"
+struct we_obj_info;
 
 struct we_req_q_head {
 	struct list_head head;
@@ -28,15 +29,10 @@ struct we_req_q_head {
 
 extern struct we_req_q_head we_q_head;
 
-/* Structure for information of request from kernel space to user space */
-struct we_req_data {
-	struct we_obj_info *we_obj_info;
-};
-
 struct we_req_q {
 	struct list_head queue;
 	int finish_flag;
-	struct we_req_data data;
+	struct we_obj_info *we_obj_info;
 	int permit;
 	wait_queue_head_t waitq;
 };
@@ -47,6 +43,5 @@ int we_req_q_cleanup(void);
 int we_req_q_head_init(void);
 int we_req_q_init(struct we_req_q *req, struct we_obj_info *info);
 int we_req_q_push(struct we_req_q *queue);
-struct we_req_q *we_req_q_search(struct we_req_data *data);
 
 #endif  /* _REQUEST_H */

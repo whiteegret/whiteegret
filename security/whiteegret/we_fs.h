@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * WhiteEgret Linux Security Module
  *
@@ -17,7 +18,6 @@
 extern struct task_struct *from_task;
 
 int we_fs_init(void);
-
 int send_we_obj_info(struct we_req_q *req);
 
 #endif  /* _WE_FS_H */

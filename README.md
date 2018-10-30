@@ -72,6 +72,22 @@ whether the executable component is changed or not after
 the whitelist is made. The WEUA returns "permit" if both tests
 are passed, otherwise returns "not permit".
 
+WhiteEgret has option to be able to control for script execution.
+Some LSM hooks (file_open/file_permission/task_alloc/task_free) are
+added. Kernel configs are required to enable the hooks.
+
+Most of interpreters open script files to execute. Therefore
+WhiteEgret hooks for reading or opening a file. Then WhiteEgret
+asks the WEUA whether an execution of the script is permitted to
+execute or not. WhiteEgret is able to choose a hook entry for
+execution control between file_open or file_permission.
+
+Hook entries of task_alloc and task_free are used to control
+exections of script effectively. Some interpreters forks child
+processes to execte script files, so the WEUA managed a process
+family of an interpter by bprm_check_security, task_alloc and
+task_free.
+
 ## Prerequisites
 
 - Ensure that you have source code of the Linux kernel,
@@ -96,6 +112,11 @@ according to `WE_DIR/security/Kconfig` and `WE_DIR/security/Makefile`, respectiv
 ```
 CONFIG_SECURITY_WHITEEGRET=y
 ```
+6.1 Option enable to controll script
+```
+SECURITY_WHITEEGRET_INTERPRETER=y
+```
+
 7. Make and install by running:
 ```
 $ make
@@ -129,19 +150,30 @@ The location of the sample user application is
 
 ### Sample user application
 
+  sample-we-user <exe> <interpreter exe> <script>
+
 This sample user application always returns "not permit"
-for the executable specified by the argument `argv[1]`,
+for the executable specified by the argument <exe>,
 otherwise always returns "permit". Set the absolute path
-of an executable to be blocked for `argv[1]`.
+of an executable to be blocked for <exe>.
+
+If the process of <interpreter exe> opening <script>, WhiteEgret
+denies the execution request of the script. If the process opens
+the other file, WhiteEgret allows the execution request.
 
 #### Example
 ```
 $ cd /lib/modules/$(uname -r)/build/samples/whiteegret
-$ sudo ./sample-we-user /bin/df
+$ sudo ./sample-we-user /bin/df /bin/perl /tmp/test.pl
 ```
 
 Then every executions of `/bin/df` are blocked.
 The other commands can be issued normally.
+
+If the process family of /bin/perl requests to open
+/tmp/test.pl, WhiteEgret denies the request. If the
+process family requests to open other file, it is
+permitted.
 
 #### Remark
 

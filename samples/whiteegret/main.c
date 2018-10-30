@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * WhiteEgret Linux Security Module
  *
@@ -33,9 +34,38 @@ static void sigint_catch(int sig)
 
 static void print_usage(void)
 {
-	fprintf(stderr, "Usage: sample-we-user [file_name]\n");
-	fprintf(stderr, "file_name: absolute path of executable");
-	fprintf(stderr, "not to permit execution.\n");
+	fprintf(stderr, "Usage: sample-we-user <executable file name> ");
+	fprintf(stderr,	"<interpreter file name> <script file name>\n");
+	fprintf(stderr, "executable file name: absolute path of executable ");
+	fprintf(stderr,	"not to permit execution.\n");
+	fprintf(stderr, "interpreter file name: absolute path of");
+	fprintf(stderr, "interpreter monitoring script read.\n");
+	fprintf(stderr, "script file name: absolute path of script file");
+	fprintf(stderr, "not to permit reading(execution).\n");
+	fprintf(stderr, "If you want to use controling script file, ");
+	fprintf(stderr, "you enable WhiteEgret Kernel option ");
+	fprintf(stderr, "CONFIG_SECURITY_WHITEEGRET_INTERPRETER.\n");
+}
+
+static int check_whitelist(int *result, struct we_req_user *user)
+{
+	int ret;
+
+	switch (user->cmd) {
+	case CONTROL_EXEC:
+		ret = check_whitelist_exec(result, user);
+		break;
+	case CONTROL_READ:
+		ret = check_whitelist_terp(result, user);
+		break;
+	case CONTROL_FORK:
+		ret = check_fork_terp(result, user);
+		break;
+	case CONTROL_EXIT:
+		ret = check_exit_terp(result, user);
+		break;
+	}
+	return ret;
 }
 
 int main(int argc, char *argv[])
@@ -46,12 +76,15 @@ int main(int argc, char *argv[])
 	char buf[1024];
 	int ret;
 
-	if (argc < 2) {
+	if (argc < 4) {
 		print_usage();
 		return -1;
 	}
 
+	init_terp_proc();
 	snprintf(not_permit_exe, NOTPERMITEXENAMELENGTH, "%s", argv[1]);
+	snprintf(monitor_interpreter, NOTPERMITEXENAMELENGTH, "%s", argv[2]);
+	snprintf(not_permit_script, NOTPERMITEXENAMELENGTH, "%s", argv[3]);
 
 	signal(SIGINT, sigint_catch);
 
@@ -74,7 +107,7 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		ack.pid = user->pid;
+		ack.tgid = user->tgid;
 		check_whitelist(&ack.permit, user);
 
 		ret = write(fd, (char *)&ack, sizeof(ack));
